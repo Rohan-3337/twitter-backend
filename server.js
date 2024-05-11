@@ -10,6 +10,7 @@ import { v2 as cloudinary } from "cloudinary";
 import cors from "cors";
 
 configDotenv({path:"./.env"});
+app.use(cookieParser());
 const app = express();
 app.use(express.json({limit:"5mb"}));
 app.use(express.urlencoded({extended: false,limit:"5mb"}))
@@ -22,7 +23,6 @@ app.use(cors({
 	origin:"*"
 }))
 
-app.use(cookieParser());
 
 const Port = process.env.PORT || 5000;
 app.use("/api/auth",authRoutes);
