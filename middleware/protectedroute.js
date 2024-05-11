@@ -8,7 +8,7 @@ export const ProtectedRoute = async(req,res,next)=>{
 		
 		
         const token= req.cookies.jwt;
-		console.log(token);
+		console.log(req.cookies);
 
         
 		if (!token) {

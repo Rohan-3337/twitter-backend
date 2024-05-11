@@ -10,8 +10,8 @@ import { v2 as cloudinary } from "cloudinary";
 import cors from "cors";
 
 configDotenv({path:"./.env"});
-app.use(cookieParser());
 const app = express();
+app.use(cookieParser());
 app.use(express.json({limit:"5mb"}));
 app.use(express.urlencoded({extended: false,limit:"5mb"}))
 cloudinary.config({
