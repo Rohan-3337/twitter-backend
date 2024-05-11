@@ -97,7 +97,7 @@ export const logout=async (req,res)=>{
 export const getProfile = async(req, res) =>{
     try {
         const user = await User.findById(req.user._id).select('-password');
-        console.log("Authuser");
+        
         return res.status(200).json({message:"user is found",user});
 
         
