@@ -3,7 +3,7 @@ import bcryptjs from "bcryptjs"
 import { generateTokenAndSetCookies } from "../utils/generateTokenAndSetCookies.js";
 
 export const singup =async (req,res)=>{
-    console.log(req.body);
+    
     try {
         const {username,email,fullName,password} = req.body;
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -30,6 +30,7 @@ export const singup =async (req,res)=>{
         });
         if(newUser){
             generateTokenAndSetCookies(newUser._id,res);
+            console.log(req.cookies)
             
             await newUser.save();
             
