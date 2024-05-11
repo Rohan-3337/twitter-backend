@@ -7,6 +7,7 @@ import { configDotenv } from "dotenv";
 import Connectdb from "./DB/Connectdb.js";
 import cookieParser from "cookie-parser";
 import { v2 as cloudinary } from "cloudinary";
+import cors from "cors";
 
 configDotenv({path:"./.env"});
 const app = express();
@@ -17,6 +18,9 @@ cloudinary.config({
 	api_key: process.env.CLOUDINARY_API_KEY,
 	api_secret: process.env.CLOUDINARY_API_SECRET,
 });
+app.use(cors({
+	origin:"*"
+}))
 
 app.use(cookieParser());
 
@@ -26,7 +30,8 @@ app.use("/api/users",userRoutes);
 app.use("/api/post",postRoutes);
 app.use("/api/notification",notificationRoute);
 
-app.listen(Port,()=>{
+app.listen(Port,async()=>{
     console.log(`server listening on ${Port}`);
+	
 })
 Connectdb();

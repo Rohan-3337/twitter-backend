@@ -48,6 +48,11 @@ const UserSchema = new Schema({
         type:String,
         default:"",
     },
+    blockedUser:[{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:"User",
+        default:[],
+    }],
     likedPosts:[
         {
             type:mongoose.Schema.Types.ObjectId,

@@ -178,9 +178,15 @@ export const getFollowingPosts = async(req,res)=>{
 
 export const getUserPosts = async (req, res) => {
 	try {
+        const userId = req.user._id;
 		const { id } = req.params;
 
 		const user = await User.findById(id);
+        const isblocked = user.blockedUser.includes(userId);
+        if (isblocked) {
+            return res.status(403).json({message:"you Blocked user"});
+
+        }
 		if (!user) return res.status(404).json({ error: "User not found" });
 
 		const post = await Post.find({ user: user._id })
