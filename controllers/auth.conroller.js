@@ -1,6 +1,7 @@
 import User from "../models/user.model.js";
 import bcryptjs from "bcryptjs"
 import { generateTokenAndSetCookies } from "../utils/generateTokenAndSetCookies.js";
+import cookieParser from "cookie-parser";
 
 export const singup =async (req,res)=>{
     
@@ -29,8 +30,10 @@ export const singup =async (req,res)=>{
             username,fullName,email,password:hashpassword
         });
         if(newUser){
-            generateTokenAndSetCookies(newUser._id,res);
-            console.log(req.cookies)
+            const token = await generateTokenAndSetCookies(newUser._id);
+           
+        
+            
             
             await newUser.save();
             
@@ -43,7 +46,8 @@ export const singup =async (req,res)=>{
                 followers: newUser.followers,
                 following: newUser.following,
                 email: newUser.email,
-                bio: newUser.bio
+                bio: newUser.bio,
+                token
 
             })
         }
@@ -62,7 +66,7 @@ export const login =async (req,res)=>{
         if(!user || !isPassword){
             return res.status(401).json({error:"Invalid password or username"});
         }
-        generateTokenAndSetCookies(user._id,res);
+        const token = await generateTokenAndSetCookies(user?._id);  
             
             
             return res.status(200).json({
@@ -74,8 +78,8 @@ export const login =async (req,res)=>{
                 followers: user.followers,
                 following: user.following,
                 email: user.email,
-                bio: user.bio
-
+                bio: user.bio, 
+                token
             })
 
 

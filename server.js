@@ -19,9 +19,23 @@ cloudinary.config({
 	api_key: process.env.CLOUDINARY_API_KEY,
 	api_secret: process.env.CLOUDINARY_API_SECRET,
 });
-app.use(cors({
-	origin:"*"
-}))
+if (process.env.NODE_ENV === "development"){
+	app.use(
+	  cors({
+		origin: "http://localhost:3000",
+		credentials: true,
+	  })
+	);
+  }
+  
+  if (process.env.NODE_ENV === "production"){
+	app.use(
+	  cors({
+		origin: "https://twitter-frontend-7e067watd-rohan-3337s-projects.vercel.app/",
+		credentials: true,
+	  })
+	);
+  }
 
 
 const Port = process.env.PORT || 5000;
@@ -32,6 +46,7 @@ app.use("/api/notification",notificationRoute);
 
 app.listen(Port,async()=>{
     console.log(`server listening on ${Port}`);
+	
 	
 })
 Connectdb();

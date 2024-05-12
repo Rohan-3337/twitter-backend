@@ -4,11 +4,13 @@ import User from "../models/user.model.js";
 
 
 export const ProtectedRoute = async(req,res,next)=>{
+	
     try {
 		
 		
-        const token= req.cookies.jwt;
-		console.log(req.cookies);
+        const token =  req.header("auth-token");
+		
+		
 
         
 		if (!token) {
@@ -31,7 +33,7 @@ export const ProtectedRoute = async(req,res,next)=>{
 		next();
 
     } catch (error) {
-        console.error(error.message);
+        res.status(500).json({ error: "server problem" });
         next(error);
     }
 }
