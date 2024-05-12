@@ -28,14 +28,14 @@ if (process.env.NODE_ENV === "development"){
 	);
   }
   
-  if (process.env.NODE_ENV === "production"){
+  
 	app.use(
 	  cors({
-		origin: "https://twitter-frontend-7e067watd-rohan-3337s-projects.vercel.app/",
+		origin: "*",
 		credentials: true,
 	  })
 	);
-  }
+  
 
 
 const Port = process.env.PORT || 5000;
