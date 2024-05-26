@@ -1,17 +1,38 @@
 import Notification from "../models/notification.model.js";
+import Post from "../models/post.model.js";
 import User from "../models/user.model.js";
 import bcryptjs from "bcryptjs";
 import { v2 as cloudinary } from "cloudinary";
+import {isValidObjectId} from "mongoose"
 
 export const getProfile= async (req, res) =>{
     try {
         const {id} = req.params;
+        const {blockedUser} =req.user;
         const user = await User.findById(id).select("-password");
+        const post  = await Post.find({user:id});
+        
+        const isblocked =blockedUser.includes(id);
+        if(isblocked){
+            return res.status(400).json({message: "you are not allowed to see this profile"});  
+        }
+
         if(!user){
             return res.status(404).json({message: "User not found"});
 
         }
-        return res.json({message:"user find successfully",user});
+        return res.status(200).json({msg:"User find successfully",user:{_id: user._id,
+            username: user.username,
+            coverImg: user.coverImg,
+            fullName: user.fullName,
+            link:user.link,
+            followers: user.followers,
+            following: user.following,
+            email: user.email,
+            bio: user.bio,
+            postLength:post.length,
+            createdAt: user.createdAt,
+            }});
 
         
     } catch (error) {
@@ -66,13 +87,18 @@ export const followUser = async(req,res) => {
 export const getSuggestedUsers = async(req, res) =>{
     try {
         const userId = req.user._id;
+        const {_id,blockedUser} = req.user;
+        const blockedMeUsers = await User.find({ blockedUser:_id }).select('_id');
+        const blockedMeUserIds = blockedMeUsers.map(user => user._id);
 
+        // Combine both arrays of blocked user IDs
+        const allBlockedUserIds = [...blockedUser, ...blockedMeUserIds];
 		const usersFollowedByMe = await User.findById(userId).select("following");
 
 		const users = await User.aggregate([
 			{
 				$match: {
-					_id: { $ne: userId },
+					_id: { $nin: [...allBlockedUserIds, userId] },
 				},
 			},
 			{ $sample: { size: 10 } },
@@ -80,10 +106,11 @@ export const getSuggestedUsers = async(req, res) =>{
 
 		
 		const filteredUsers = users.filter((user) => !usersFollowedByMe.following.includes(user._id));
+        
 		const suggestedUsers = filteredUsers.slice(0, 4);
 
 		suggestedUsers.forEach((user) => (user.password = null));
-        console.log(suggestedUsers,"Run suggested user"); 
+     
         res.status(200).json(suggestedUsers);
 
     } catch (error) {
@@ -97,6 +124,7 @@ export const updateUser = async (req, res) => {
     const {username,fullName,currentPassword,email,newPassword,bio,link} =req.body;
     let {coverImg,profileImg} =req.body;
     const{_id} =req.user;
+
     try {
         let user = await User.findById(_id);
         if(!user) return res.status(400).json({message:"User not found"});
@@ -147,3 +175,104 @@ export const updateUser = async (req, res) => {
         return res.status(500).json({message:`Error: ${error}`});
     }
 };
+
+export const followers = async(req,res)=>{
+    const{id} =req.params;
+    console.log(id);
+    const {blockedUser,_id} =req.user;
+    try {
+        const blockedMeUsers = await User.find({ blockedUser:_id }).select('_id');
+        const blockedMeUserIds = blockedMeUsers.map(user => user._id);
+
+        // Combine both arrays of blocked user IDs
+        const allBlockedUserIds = [...blockedUser, ...blockedMeUserIds];
+        const user = await User.findById(id)
+            .select("_id username fullName email") 
+            .populate({
+                path: "followers",
+                match:{_id:{$nin:allBlockedUserIds}},
+                select: "_id profileImg username fullName"
+            });
+        if(!user){
+            return res.status(404).json({message:"User not found"});
+        }
+        
+        return res.status(200).json(user);
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({message:`Error: ${error}`});
+    }
+    
+}
+
+
+export const following = async(req,res)=>{
+    const{id} =req.params;
+    const {blockedUser,_id} =req.user;
+    try {
+        const blockedMeUsers = await User.find({ blockedUser:_id }).select('_id');
+        const blockedMeUserIds = blockedMeUsers.map(user => user._id);
+
+        // Combine both arrays of blocked user IDs
+        const allBlockedUserIds = [...blockedUser, ...blockedMeUserIds];
+        const user = await User.findById(id)
+            .select("_id profileImg username fullName email") 
+            .populate({
+                path: "following",
+                match:{_id:{$nin:allBlockedUserIds}},
+                select: "_id profileImg username fullName"
+            });
+        if(!user){
+            return res.status(404).json({message:"User not found"});
+        }
+        
+        return res.status(200).json(user);
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({message:`Error: ${error}`});
+    }
+    
+}
+
+
+export const blockedUserbyId = async(req,res)=>{
+    const {_id,blockedUser} = req.user;
+    const {id} = req.params;
+    try {
+        if(id === req.user._id.toString()) {
+            return res.status(400).json({message:"you cannot block yourself"});
+        }
+        const isblocked = blockedUser.includes(id);
+        
+        if(isblocked) {
+            await User.updateOne({_id},{$pull: {blockedUser:req.params.id}});
+            
+        
+            return res.status(200).json({message:"you unblocked successfully"});
+        }else{
+             await User.updateOne({_id},{$push: {blockedUser:req.params.id}});
+           
+            return res.status(200).json({message:"you blocked successfully"});
+
+        }
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({error:`${error.message}`});
+    }
+}
+
+export const allBlockedUser =async(req,res)=>{
+    const {_id} = req.user;
+    try {
+        const check = isValidObjectId(_id);
+        const blockUsers = await User.findById(_id).populate({path:"blockedUser",select:"__id profileImg username fullName"}).select("_id profileImg username fullName");
+        if(!check) {
+            return res.status(404).json({error: 'Not Found'});
+        }
+        return res.status(200).json(blockUsers);
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({error:`${error.message}`});
+    }
+}

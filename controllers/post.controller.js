@@ -117,26 +117,42 @@ export const likeUnlikePost = async (req, res) => {
 
 
 export const AllPost = async(req, res) => {
+    const {blockedUser,_id} =req.user;
     try {
-    
-        const post = await Post.find().sort({createdAt:-1}).populate({path:"user",select:"-password"}).populate({path:"comments.user"});
+        const blockedMeUsers = await User.find({ blockedUser:_id }).select('_id');
+        const blockedMeUserIds = blockedMeUsers.map(user => user._id);
+
+        // Combine both arrays of blocked user IDs
+        const allBlockedUserIds = [...blockedUser, ...blockedMeUserIds];
+
+        const post = await Post.find({user:{$nin:allBlockedUserIds}}).sort({createdAt:-1}).populate({path:"user",select:"-password"}).populate({path:"comments.user"});
         if(post.length ===0){
             return res.status(200).json([]);
         }
         return res.status(200).json({message:"fetched successfully",post});
     } catch (error) {
         console.log(error);
-        return res.status(500).json({error:`${error.message}`});
+        return res.status(500).json({error:`${error.message}`}); 
     }
 };
 
 
 export const getLikedPosts = async (req, res) => {
     const userId = req.params.id;
+    const {blockedUser,_id} =req.user;
     try {
+        const blockedMeUsers = await User.find({ blockedUser:_id }).select('_id');
+        const blockedMeUserIds = blockedMeUsers.map(user => user._id);
+
+        // Combine both arrays of blocked user IDs
+        const allBlockedUserIds = [...blockedUser, ...blockedMeUserIds];
         const user = await User.findById(userId);
+
         if(!user) return res.status(404).json({message:"User not found"});
-        const likedPosts = await Post.find({ _id: { $in: user.likedPosts } })
+        const likedPosts = await Post.find({ and:[
+            {_id: { $in: user.likedPosts }},
+            ,{user:{$nin:allBlockedUserIds}},
+        ] })
 			.populate({
 				path: "user",
 				select: "-password",
@@ -154,18 +170,26 @@ export const getLikedPosts = async (req, res) => {
 };
 
 export const getFollowingPosts = async(req,res)=>{
+    const {blockedUser,_id} = req.user;
     try {
         const userId= req.user._id;
         const user = await User.findById(userId);
+        const blockedMeUsers = await User.find({ blockedUser:_id }).select('_id');
+        const blockedMeUserIds = blockedMeUsers.map(user => user._id);
+
+        // Combine both arrays of blocked user IDs
+        const allBlockedUserIds = [...blockedUser, ...blockedMeUserIds];
         if(!user) return res.status(404).json({message:"User not found"});
         const following = user.following;
-        const followingFeed = await Post.find({user:{$in:following}}).sort({createdAt:-1})
+        const followingFeed = await Post.find({user:{$in:following},user:{$nin:allBlockedUserIds}}).sort({createdAt:-1})
         .populate({
             path: "user",
+            
             select: "-password",
         })
         .populate({
             path: "comments.user",
+        
             select: "-password",
         });
         return res.status(200).json({message:"fetched successfully",followingFeed});
@@ -180,23 +204,36 @@ export const getUserPosts = async (req, res) => {
 	try {
         const userId = req.user._id;
 		const { id } = req.params;
+        const {blockedUser ,_id} = req.user;
 
 		const user = await User.findById(id);
         const isblocked = user.blockedUser.includes(userId);
+        const blockedMeUsers = await User.find({ blockedUser:_id }).select('_id');
+        const blockedMeUserIds = blockedMeUsers.map(user => user._id);
+
+        // Combine both arrays of blocked user IDs
+        const allBlockedUserIds = [...blockedUser, ...blockedMeUserIds];
         if (isblocked) {
             return res.status(403).json({message:"you Blocked user"});
 
         }
 		if (!user) return res.status(404).json({ error: "User not found" });
 
-		const post = await Post.find({ user: user._id })
+		const post = await Post.find({ 
+            $and: [
+              { user: user._id },
+              { user: { $nin: allBlockedUserIds } }
+            ]
+          })
 			.sort({ createdAt: -1 })
 			.populate({
 				path: "user",
+                match:{_id:{$nin:allBlockedUserIds}},
 				select: "-password",
 			})
-			.populate({
+			.populate({ 
 				path: "comments.user",
+                match:{ _id: { $nin: allBlockedUserIds } },
 				select: "-password",
 			});
 
