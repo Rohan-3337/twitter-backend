@@ -5,7 +5,7 @@ const isblocked =async(req,res,next) => {
         const userId = req.user._id;
         const id = req.params.id;
         const user = await User.findById(id);
-        const isblocked = user.blockedUser.includes(userId);
+        const isblocked = user?.blockedUser.includes(userId);
         if (isblocked) {
             return res.status(403).json({message:"you Blocked user"});
 
@@ -18,7 +18,7 @@ const isblocked =async(req,res,next) => {
 
     } catch (error) {
         next();
-        return res.status(500).json({message:"error"});
+        return res.status(500).json({error:error.message});
 
     }
 };
