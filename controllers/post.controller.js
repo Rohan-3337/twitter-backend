@@ -125,6 +125,7 @@ export const AllPost = async(req, res) => {
         const allBlockedUserIds = [...blockedUser, ...blockedMeUserIds];
 
         const post = await Post.find({user:{$nin:allBlockedUserIds}}).sort({createdAt:-1}).populate({path:"user",select:"-password"}).populate({path:"comments.user"});
+        
         if(post.length ===0){
             return res.status(200).json([]);
         }
@@ -180,7 +181,8 @@ export const getFollowingPosts = async(req,res)=>{
         const allBlockedUserIds = [...blockedUser, ...blockedMeUserIds];
         if(!user) return res.status(404).json({message:"User not found"});
         const following = user.following;
-        const followingFeed = await Post.find({user:{$in:following},user:{$nin:allBlockedUserIds}}).sort({createdAt:-1})
+        const followingFeed = await Post.find({user: { $in: following, $nin: allBlockedUserIds }
+        }).sort({createdAt:-1})
         .populate({
             path: "user",
             
@@ -242,3 +244,4 @@ export const getUserPosts = async (req, res) => {
 		res.status(500).json({ error: "Internal server error" });
 	}
 };
+

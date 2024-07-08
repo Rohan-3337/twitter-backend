@@ -60,6 +60,21 @@ const UserSchema = new Schema({
             default:[],
 
         }
+    ],
+    savePosts:[
+        {
+            type:mongoose.Schema.Types.ObjectId,
+            ref:"Post",
+            default:[],
+
+        }
+    ],
+    retweets:[
+        {
+            type:mongoose.Schema.Types.ObjectId,
+            ref:"Post",
+            default:[],
+        }
     ]
 },{timestamps: true});
 

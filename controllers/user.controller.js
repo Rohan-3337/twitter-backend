@@ -276,3 +276,95 @@ export const allBlockedUser =async(req,res)=>{
         return res.status(500).json({error:`${error.message}`});
     }
 }
+
+export const SaveUnsavePost = async(req,res) =>{
+    try {
+        const userId = req.user._id;
+        const { id: postId } = req.params;
+        const post = await Post.findById(postId);
+
+        
+        if (!post) {
+            return res.status(404).json({ error: "Post not found" });
+        }
+        const user = await User.findById(userId);
+
+
+        const userSavePost = user.savePosts.includes(postId);
+
+
+        if (userSavePost) {
+        
+            await User.updateOne({ _id: userId }, { $pull: { savePosts: postId } });
+            user.savePosts.pull(postId);
+
+            return res.status(200).json({ message: "Unsave the Post", savePosts:user.savePosts });
+        } else {
+            user.savePosts.push(postId);
+
+            await User.updateOne({ _id: userId }, { $push: { savePosts: postId } });
+            return res.status(200).json({ message: "Save the post successfully", savePosts:user.savePosts });
+        }
+
+        
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({error:`${error.message}`});
+    }
+}
+
+
+export const getSave = async(req,res) =>{
+    try {
+        const {savePosts,_id} = req.user;
+        const saveposts = await Post.find({_id:{$in:savePosts}}).populate();
+        return res.status(200).json({message:"success",savePosts:saveposts});
+        
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({error:`${error.message}`});
+    }
+} 
+
+
+
+// implement retweet Function
+export const retweet = async(req, res) => {
+    try {
+        const {user} = req;
+        const {id} = req.params;
+        const post = await Post.findById(id);
+        if (!post) {
+            return res.status(404).json({message:"not found"});
+        }
+        const checkRetweet = user?.retweets?.includes(post?.id);
+        if (checkRetweet) {
+            await User.updateOne({ _id: user?._id }, { $pull: { retweets: id } });
+            user.savePosts.pull(id);
+            return res.status(200).json({message:"Remove the retweet post successfully"});
+        }else{
+            user.retweets.push(id);
+
+            await User.updateOne({ _id: user?._id }, { $push: { retweets: id } });
+            return res.status(200).json({ message: "Retweet the post successfully" });
+        }
+        
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({error:`${error.message}`});
+    }
+}
+
+
+export const getRetweet = async(req,res) => {
+    try {
+        const {retweets,_id} = req.user;
+        const allretweets = await Post.find({_id:{$in:retweets}}).populate();
+        console.log(allretweets);
+        return res.status(200).json({message:"success",retweets:allretweets});
+        
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({error:`${error.message}`});
+    }
+}
