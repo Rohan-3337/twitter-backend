@@ -69,13 +69,7 @@ const UserSchema = new Schema({
 
         }
     ],
-    retweets:[
-        {
-            type:mongoose.Schema.Types.ObjectId,
-            ref:"Post",
-            default:[],
-        }
-    ]
+    
 },{timestamps: true});
 
 

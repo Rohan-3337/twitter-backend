@@ -41,6 +41,12 @@ export const DeletePost = async(req,res) => {
         if(post.user.toString()!==req.user._id.toString()){
             return res.status(400).json({message:"UnAuthorized accesss",});
         }
+        if(post.type ==="retweet"){
+            const Original = await Post.findById(post.retweet.originalPost);
+            Original.TotalRetweet -= 1;
+            await Original.save();
+
+        }
         if(post.img){
             const imgId = post.img.split("/").pop().split(".")[0];
 			await cloudinary.uploader.destroy(imgId);
@@ -124,8 +130,23 @@ export const AllPost = async(req, res) => {
         // Combine both arrays of blocked user IDs
         const allBlockedUserIds = [...blockedUser, ...blockedMeUserIds];
 
-        const post = await Post.find({user:{$nin:allBlockedUserIds}}).sort({createdAt:-1}).populate({path:"user",select:"-password"}).populate({path:"comments.user"});
-        
+        // const post = await Post.find({user:{$nin:allBlockedUserIds}}).sort({createdAt:-1}).populate({path:"user",select:"-password"}).populate({path:"comments.user"});
+        const post = await Post.find({user:{$nin:allBlockedUserIds}})
+            .populate('user', 'username fullName profileImg')
+            .populate('likes', 'username fullName profileImg')
+            .populate({
+                path: 'comments.user',
+                select: 'username fullName profileImg'
+            })
+            .populate({
+                path: 'retweet.originalPost',
+                
+                populate: {
+                    path: 'user',
+                    select: 'username fullName profileImg'
+                }
+            });
+        console.log(post);
         if(post.length ===0){
             return res.status(200).json([]);
         }
@@ -244,4 +265,54 @@ export const getUserPosts = async (req, res) => {
 		res.status(500).json({ error: "Internal server error" });
 	}
 };
+
+
+export const retweet = async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const { id: postId } = req.params;
+        const originalPost = await Post.findById(postId);
+
+        if (!originalPost) {
+            return res.status(404).json({ error: "Post not found" });
+        }
+
+        if (originalPost.type === 'retweet') {
+            return res.status(400).json({ error: 'Cannot retweet a retweet' });
+        }
+
+        const existingRetweet = await Post.findOne({ type: 'retweet', user: userId, 'retweet.originalPost': postId });
+
+        if (existingRetweet) {
+            await Post.deleteOne({ _id: existingRetweet._id });
+            originalPost.TotalRetweet -= 1;
+            await originalPost.save();
+            return res.status(200).json({ message: "Retweet removed successfully" });
+        } else {
+            const newRetweet = new Post({
+                user: userId,
+                type: 'retweet',
+                retweet: {
+                    originalPost: originalPost._id,
+                    user: originalPost.user
+                }
+            });
+            originalPost.TotalRetweet += 1;
+            await originalPost.save();
+            await newRetweet.save();
+
+            const notification = new Notification({
+                from: userId,
+                to: originalPost.user,
+                type: 'retweet'
+            });
+            await notification.save();
+
+            return res.status(200).json({ message: "Post retweeted successfully", retweetId: newRetweet._id });
+        }
+    } catch (error) {
+        console.log("Error in retweet controller: ", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+}
 

@@ -36,6 +36,21 @@ const PostSchema = new Schema({
         ref:"User"
         }
     }],
+    retweet: {
+        originalPost: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Post'
+        },
+        user: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User'
+        }
+    },
+    TotalRetweet:{
+        type:Number,
+        default:0,
+    }
+
 
 
 },{timestamps: true});

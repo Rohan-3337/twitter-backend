@@ -11,7 +11,7 @@ const NotificationSchema = new Schema({
     to:{
         type:mongoose.Schema.Types.ObjectId,
         ref:"User",
-        required:true
+        required:true  
     },
     type:{
         type:String,

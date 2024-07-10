@@ -317,7 +317,21 @@ export const SaveUnsavePost = async(req,res) =>{
 export const getSave = async(req,res) =>{
     try {
         const {savePosts,_id} = req.user;
-        const saveposts = await Post.find({_id:{$in:savePosts}}).populate();
+        const saveposts = await Post.find({_id:{$in:savePosts}})
+        .populate('user', 'username fullName profileImg')
+            .populate('likes', 'username fullName profileImg') 
+            .populate({
+                path: 'comments.user',
+                select: 'username fullName profileImg'
+            })
+            .populate({
+                path: 'retweet.originalPost',
+                
+                populate: {
+                    path: 'user',
+                    select: 'username fullName profileImg'
+                }
+            });;
         return res.status(200).json({message:"success",savePosts:saveposts});
         
     } catch (error) {
